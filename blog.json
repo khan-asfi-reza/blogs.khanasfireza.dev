@@ -3,7 +3,6 @@
 "name": "Dockerizing Django with Nginx and Let's Encrypt SSL Certificate",
 "text": "Learn how to dockerize a Django application with Nginx and secure it with a free SSL certificate from Let's Encrypt. Docker is a containerization platform that simplifies the deployment and management of applications by creating lightweight, portable containers. Nginx is a popular web server and reverse proxy server, and Let's Encrypt is a free, automated, and open Certificate Authority (CA) that provides SSL/TLS certificates for securing websites.",  
 "read": "10 minute read",
-
 "image": "https://raw.githubusercontent.com/khan-asfi-reza/blogs.khanasfireza.dev/master/images/django-docker.webp",
 "slug": "deploy-django-in-prod-with-docker-nginx-letsencrypt"  
 }
