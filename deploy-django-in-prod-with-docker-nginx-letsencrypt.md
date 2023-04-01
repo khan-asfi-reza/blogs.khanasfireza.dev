@@ -30,7 +30,7 @@ Clone this repo in your local system to anaylyze
 git clone https://github.com/khan-asfi-reza/django-docker-nginx-letsencrypt
 ```
 
-==blog_api== is the python django application, a basic blog api which we will use as our referance project. Along with this project we have celery, elasticsearch, kibana covered as well.
+'blog_api' is the python django application, a basic blog api which we will use as our referance project. Along with this project we have celery, elasticsearch, kibana covered as well.
 
 In the project root we have a dockerfile for the django application
 
@@ -58,7 +58,7 @@ WORKDIR blogs_api
 
 replace 'blogs_api' with your project name.
 
-==docker-compose.yaml== contains dev compose file, suitable for dev environment. You must have a .dev.env file in the project root containing dev environment variables. View .sample.env in the ref repo
+'docker-compose.yaml' contains dev compose file, suitable for dev environment. You must have a .dev.env file in the project root containing dev environment variables. View .sample.env in the ref repo
 
 ### 🪜 Steps
 
