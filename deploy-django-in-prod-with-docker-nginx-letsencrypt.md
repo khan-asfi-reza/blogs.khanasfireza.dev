@@ -1,70 +1,99 @@
-# django-docker-nginx-letsencrypt
+# Dockerize Django with Nginx Certbot ( SSL Certificate )
 
-Purpose: Create a dockerized django application with nginx and ssl certificate.
-This project covers how to deploy a django application with docker nginx letsencrypt (ssl certificate)
-By following this repo, you will be able to publish your django app in any vm, and you will be able to
-create a http-secured app
+Django is a high-level, open-source web framework for Python that encourages rapid development and clean, pragmatic design. A framework made by group of perfectionist for perfectionists with deadlines. In this blog we'll explore how to dockerize a Django application with Nginx and secure it with a free Let's Encrypt SSL certificate. By creating portable, lightweight containers, a containerization technology known as Docker makes it simpler to deploy and manage programs. Nginx is a well-known web server and reverse proxy server, and Let's Encrypt is a free, automatic, and open Certificate Authority (CA) that provides SSL/TLS certificates for protecting websites. This project also covers setting up celery, elasticsearch, flower and kibana
 
-#### 💻 Techs used
 
-- Django
-- Celery
-- Postgresql
-- Redis
-- Elasticsearch
-- Nginx
-- Certbot
+#### 💻 Prerequisites
 
-#### 📂 Directory structure
+- Basic understanind of Docker, Django, Nginx
+- A domain pointing to your server
+- A VM Instance or a server with an open 443 and 80 port
+- A VM instance with Ubuntu or Debian Based System
 
-```
----- docker ( Contains Docker Related Config Files )
-     --- certbot
-         --- Dockerfile
-         --- certify.sh
-     --- nginx
-         --- Dockerfile
-         --- nginx.conf ( Contains Both HTTPS and HTTP Config )
-         --- nginx_http.conf ( Contains HTTP Config only )
-         --- run.sh
-     --- worker
-         --- ...
-         
----- blogs_api ( Django Application | Celery Application )
-     --- ...
-     --- apps
-     --- blogs_api
-         --- ...
-         --- settings.py
+#### What we will achieve 
+
+- A ssl secured web app written in Django pointed to a domain
+- Automated ssl certificate renewal 
+- Celery workers in the backend
+- Elasticsearch and Postgres setup
+- Redis setup
+- Celery worker monitor tool setup 
+- Kibana to view elasticseasrch results
+
+#### 💻 Setup
+
+For referance we will use the following github repo | [Referance Repo](https://github.com/khan-asfi-reza/django-docker-nginx-letsencrypt)
+
+Clone this repo in your local system to anaylyze
+
+```bash
+git clone https://github.com/khan-asfi-reza/django-docker-nginx-letsencrypt
 ```
 
-### Explanations 📖
+==blog_api== is the python django application, a basic blog api which we will use as our referance project. Along with this project we have celery, elasticsearch, kibana covered as well.
 
-In `docker/nginx` directory there are two files 
+In the project root we have a dockerfile for the django application
 
-* nginx.conf
-* nginx_http.conf
+```Dockerfile
+# Debian based 
+FROM python:3.11.0-bullseye
 
-`nginx_http.conf` will be used first to setup a http nginx server, which is important to get
-the ssl certificate for the domain. Later after getting ssl certificate `nginx.conf` will be used which will
-have https server
+ENV PYTHONUNBUFFERED 1
 
+# Install required package for postgres and django
+RUN apt-get update && apt-get install -y libpq-dev gcc python3-dev musl-dev build-essential
 
-### 🎉 Deploy this app in any vm instances 
-- What you will need?
-- amazon ec2, Google Compute Engine, DigitalOcean Instance, Azure VM
+# We used pipenv for our project
+RUN pip install pipenv
+
+COPY Pipfile Pipfile
+COPY Pipfile.lock Pipfile.lock
+
+RUN pipenv install
+
+COPY ./blogs_api ./blogs_api
+
+WORKDIR blogs_api
+```
+
+replace 'blogs_api' with your project name.
+
+==docker-compose.yaml== contains dev compose file, suitable for dev environment. You must have a .dev.env file in the project root containing dev environment variables. View .sample.env in the ref repo
 
 ### 🪜 Steps
 
 ### SSH Into your VM
 
-SSH into your vm using ssh tool, you can use third party ssh tool like putty
+Managing a web server can be a daunting task, especially for those who are new to server administration. One of the most popular server operating systems is Ubuntu, and using SSH to connect to an Ubuntu-based server is a common practice. After successfully creating your droplet / vm machine, allow ssh to your vm. You can use either your username password or ssh key to get access in your instance.
+
+```bash
+ssh root@your_instance_ip_address
+```
+
+### Connect your domain and server
+
+To point your domain to the DigitalOcean Droplet, follow these steps
+
+- Log in to your domain registrar's control panel.
+- Locate the DNS management settings.
+ - Add a new "A" record with the following details:
+ - Name: @ (or your desired subdomain)
+ - TTL: 3600 (or the recommended value)
+ - Type: A
+- Value: your_droplet_ip
+- Save the changes.
+
+It may take some time for the DNS changes to propagate.
 
 ### Download and install Docker 🐋
 
+Download docker in your system and enable docker service, so even if you restart your vm it will automatically turn on your docker containers
+
 ( Example for Ubuntu/Debian Based Systems )
 
-```shell
+The following is taken from official docker doc page
+
+```bash
 # App Environment 
 sudo su
 
@@ -76,7 +105,8 @@ apt-get update
 ```
 
 Remove old versions of docker and install latest ( Steps taken from official docker page, [View More](https://docs.docker.com/engine/install/ubuntu/))
-```shell
+
+```bash
 # Uninstall Old Versions
 apt-get remove docker docker-engine docker.io containerd runc
 apt-get install -y \
@@ -87,7 +117,7 @@ apt-get install -y \
 ```
 
 Add Docker Repo
-```shell
+```bash
 sudo mkdir -m 0755 -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 echo \
@@ -96,7 +126,7 @@ echo \
 ```
 
 Update apt and install docker
-```shell
+```bash
 # Install docker engine
 apt-get update -y
 # Install docker
@@ -113,7 +143,7 @@ For other os [visit docker official documentation](https://docs.docker.com/engin
 To get our codebase from github repo we need to generate a ssh deploy key
 and put the deploy key public key to Github repo deploy key section
 
-```shell
+```bash
 ssh-keygen -t ed25519 -C "GitHub Deploy Key"
 ```
 
@@ -121,13 +151,13 @@ Cat the public and copy and paste it in the github deploy keys section
 
 Github Repo > Settings > Deploy Keys
 
-```shell
+```bash
 cat ~/.ssh/id_ed25519.pub
 ```
 
 The following command will cat the public key
 
-```shell
+```bash
 ssh-ed25519 AAAAC3NzaD23ZDI1NTE5ABSFGKoH0ASXx2ua/++wZgCUSDGsg6VmPc/ys7vNSDGsd2D6 GitHub Deploy Key
 ```
 
@@ -142,24 +172,24 @@ Put public key `ssh-ed25519 AAAAC3NzaD23ZDI1NTE5ABSFGKoH0ASXx2ua/++wZgCUSDGsg6Vm
 
 ### Pull code from github repo
 
-```shell
+```bash
 git init
 ```
 
 Add your repo origin git url
 
-```shell
+```bash
 git remote add origin <OriginURL>
 ```
 
 Here for example I am pulling from main
-```shell
+```bash
 git pull origin main
 ```
 ### Setup environment variable 💲
 
 Create .env file where your environment variables will be stored
-```shell
+```bash
 nano .env
 ```
 
@@ -197,23 +227,23 @@ ELASTICSEARCH_HOST=http://elasticsearch:9200
 
 ### Configure and run docker 🐋
 
-Build docker containers
-```shell
+Build docker containers, we will use the docker-compose.prod.yaml file as it has the production level configuration
+```bash
 docker-compose -f docker-compose.prod.yaml build 
 ```
 
 Run certbot command to get initial ssl certificate
-```shell
+```bash
 docker-compose -f docker-compose.prod.yaml run -rm certbot /opt/certify.sh
 ```
 
 Restart containers
 
-```shell
+```bash
 docker-compose -f docker-compose.prod.yaml down
 ```
 
-```shell
+```bash
 docker-compose -f docker-compose.prod.yaml up -d
 ```
 
@@ -224,12 +254,12 @@ The certificate will only be valid for three months,
 therefore you must run the renew command earlier than that.
 
 Create a bash script
-```shell
+```bash
 nano rewnew.sh
 ```
 
 This bash script will renew certificate
-```shell
+```bash
 #!/bin/sh
 set -e
 
@@ -239,12 +269,12 @@ cd /home/app/
 ```
 
 Give execution permission
-```shell
+```bash
 chmod +x renew.sh
 ```
 
 Open crontab
-```shell
+```bash
 crontab -e
 ```
 
@@ -257,29 +287,29 @@ Add the following in the crontab
 
 Create an SSH Key
 
-```shell
+```bash
 ssh-keygen -t rsa -b 4096
 ```
 
 Copy content of the key file
 
-```shell
+```bash
 cat /.ssh/id_rsa
 ```
 
 Add public key to the authorized key file
 
-```shell
+```bash
 cat /.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 ```
 
 Create a bash script to deploy
-```shell
+```basah
 nano deploy.sh
 ```
 
 This bash script will renew certificate
-```shell
+```bash
 #!/bin/sh
 set -e
 
@@ -293,12 +323,12 @@ git pull origin main --force
 ```
 
 Give execution permission
-```shell
+```bash
 chmod +x deploy.sh
 ```
 
 
-### Setup Github Actions
+### [Optional] Setup Github Actions
 
 - Go to “Settings > Secrets > Actions”
 - 
@@ -311,6 +341,7 @@ Open the Actions tab and set secrets
 
 
 Create the following secrets:
+
 SSH_PRIVATE_KEY: content of the private key file
 
 SSH_USER: user to access the server (root)
@@ -321,12 +352,13 @@ WORK_DIR: path to the directory containing the repository ( For this /home/app)
 
 MAIN_BRANCH: name of the main branch (mostly main)
 
+
 ![alt Image](https://github.com/khan-asfi-reza/django-docker-nginx-letsencrypt/blob/main/images/image5.png)
 
 
 In your repo create
 
-".github" > "workflows" > "deploy.yaml"
+`.github > workflows > deploy.yaml`
 
 ```yaml
 on:
@@ -353,4 +385,6 @@ jobs:
     - name: cleanup
       run: rm -rf ~/.ssh
 ```
+
+The following github actions will automatically deploy the code and restart the container whenever you push in main branch
 
